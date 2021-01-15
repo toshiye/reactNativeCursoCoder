@@ -1,1 +1,3 @@
 # reactNativeCursoCoder
+
+Este repositório é feito para os estudos de react native...
