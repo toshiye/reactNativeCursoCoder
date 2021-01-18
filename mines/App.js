@@ -1,84 +1,111 @@
 import React, { Component } from 'react';
 import {
-  SafeAreaView,
   StyleSheet,
-  ScrollView,
   View,
-  Text,
-  StatusBar,
+  Alert
 } from 'react-native'
 
 import params from './src/params'
-import Field from './src/components/Field'
-
+import MineField from './src/components/MineField'
 import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen'
+  createMinedBoard,
+  cloneBoard,
+  openField,
+  hadExplosion,
+  wonGame,
+  showMines,
+  invertFlag,
+  flagsUsed
+} from './src/functions'
+
+import Header from './src/components/Header'
+import LevelSelection from './src/screens/LevelSelection'
 
 export default class App extends Component {
+
+  constructor(props){
+    super(props)
+    this.state = this.createState()
+  }
+
+  minesAmount = () => {
+    const cols = params.getColumnsAmount()
+    const rows = params.getRowsAmount()
+    return Math.ceil(cols * rows + params.difficultyLevel)
+  }
+
+  createState = () => {
+    const cols = params.getColumnsAmount()
+    const rows = params.getRowsAmount()
+    return {
+      board: createMinedBoard(rows, cols, this.minesAmount()),
+      won: false,
+      lost: false,
+      showLevelSelection: false
+    }
+  }
+
+  onOpenField = (row, column) => {
+    const board = cloneBoard(this.state.board)
+    openField(board, row, column)
+    const lost = hadExplosion(board)
+    const won = wonGame(board)
+
+    if(lost){
+      showMines(board)
+      Alert.alert('Perdeeeeeuuuu!', 'Que burrrooooooo!')
+    }
+
+    if(won){
+      Alert.alert('Parabéns!', 'Você venceu!')
+    }
+
+    this. setState({ board, lost, won })
+  }
+
+  onSelectField = (row, column) => {
+    const board = cloneBoard(this.state.board)
+    invertFlag(board, row, column)
+    const won = wonGame(board)
+
+    if(won){
+      Alert.alert('Parabéns!', 'Você venceu!')
+    }
+
+    this.setState({ board, won })
+  }
+
+  onLevelSelected = level => {
+    params.difficultyLevel = level
+    this.setState(this.createState())
+  }
+
   render() {
     return (
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Iniciando o Mines!</Text>
-        <Text style={styles.sectionDescription}>
-          Tamanho da Grade: {params.getRowsAmount()} * {params.getColumnsAmount()}
-        </Text>
-        <Field/>
-        <Field opened/>
-        <Field opened nearMines={1}/>
-        <Field opened nearMines={2}/>
-        <Field opened nearMines={3}/>
-        <Field opened nearMines={6}/>
-        <Field mined/>
-        <Field mined opened/>
-        <Field mined opened exploded/>
-        <Field flagged/>
+      <View style={styles.container}>
+        <LevelSelection isVisible={this.state.showLevelSelection} 
+          onLevelSelected={this.onLevelSelected} 
+          onCancel={() => this.setState({showLevelSelection: false})}
+          onFlagPress={() => this.setState({showLevelSelection: true})}/>
+        <Header flagsLeft={this.minesAmount() - flagsUsed(this.state.board)}
+          onNewGame={() => this.setState(this.createState())}/>
+        
+        <View style={styles.board}>
+          <MineField board={this.state.board} onOpenField={this.onOpenField}/>
+        </View>
       </View>
     )
   }
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
-  },
-  engine: {
-    position: 'absolute',
-    right: 0,
-  },
-  body: {
-    backgroundColor: Colors.white,
-  },
-  sectionContainer: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end'
+  },
+  board: {
     alignItems: 'center',
-    backgroundColor: '#F5FCFF'
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
-  },
+    backgroundColor: '#AAA'
+  }
 })
+
